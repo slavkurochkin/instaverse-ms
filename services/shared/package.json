@@ -1,0 +1,12 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared utilities and libraries for microservices",
+  "dependencies": {
+    "pg": "^8.11.0",
+    "amqplib": "^0.10.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
+

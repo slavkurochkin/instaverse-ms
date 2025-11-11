@@ -1,0 +1,87 @@
+.vscode
+.DS_Store
+.sonar
+/node_modules
+
+frontend/node_modules
+frontend/.env.*
+eslint-report.json
+frontend/coverage
+frontend/build
+
+# OSX
+#
+mobile/instaverse/.DS_Store
+
+# Xcode
+#
+mobile/instaverse/ios/build/*
+mobile/instaverse/ios/build/generated/ios
+mobile/instaverse/*.pbxuser
+mobile/instaverse/!default.pbxuser
+mobile/instaverse/*.mode1v3
+mobile/instaverse/!default.mode1v3
+mobile/instaverse/*.mode2v3
+mobile/instaverse/!default.mode2v3
+mobile/instaverse/*.perspectivev3
+mobile/instaverse/!default.perspectivev3
+mobile/instaverse/xcuserdata
+mobile/instaverse/*.xccheckout
+mobile/instaverse/*.moved-aside
+mobile/instaverse/DerivedData
+mobile/instaverse/*.hmap
+mobile/instaverse/*.ipa
+mobile/instaverse/*.xcuserstate
+mobile/instaverse/**/.xcode.env.local
+
+# Android/IntelliJ
+#
+mobile/instaverse/build/
+mobile/instaverse/.idea
+mobile/instaverse/.gradle
+mobile/instaverse/local.properties
+mobile/instaverse/*.iml
+mobile/instaverse/*.hprof
+mobile/instaverse/.cxx/
+mobile/instaverse/*.keystore
+mobile/instaverse/!debug.keystore
+mobile/instaverse/.kotlin/
+
+# node.js
+#
+mobile/instaverse/node_modules/
+mobile/instaverse/npm-debug.log
+mobile/instaverse/yarn-error.log
+
+# fastlane
+#
+# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
+# screenshots whenever they are needed.
+# For more information about the recommended setup visit:
+# https://docs.fastlane.tools/best-practices/source-control/
+
+mobile/instaverse/**/fastlane/report.xml
+mobile/instaverse/**/fastlane/Preview.html
+mobile/instaverse/**/fastlane/screenshots
+mobile/instaverse/**/fastlane/test_output
+
+# Bundle artifact
+mobile/instaverse/*.jsbundle
+
+# Ruby / CocoaPods
+mobile/instaverse/**/Pods/
+mobile/instaverse/vendor/bundle/
+
+# Temporary files created by Metro to check the health of the file watcher
+mobile/instaverse/.metro-health-check*
+
+# testing
+mobile/instaverse/coverage
+
+# Yarn
+mobile/instaverse/.yarn/*
+mobile/instaverse/!.yarn/patches
+mobile/instaverse/!.yarn/plugins
+mobile/instaverse/!.yarn/releases
+mobile/instaverse/!.yarn/sdks
+mobile/instaverse/!.yarn/versions

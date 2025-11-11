@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  # Databases
+  auth-db:
+    image: postgres:15-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+      - ./database/migrations/auth:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  story-db:
+    image: postgres:15-alpine
+    container_name: story-db
+    environment:
+      POSTGRES_DB: story_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - story-db-data:/var/lib/postgresql/data
+      - ./database/migrations/story:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d story_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  social-db:
+    image: postgres:15-alpine
+    container_name: social-db
+    environment:
+      POSTGRES_DB: social_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - social-db-data:/var/lib/postgresql/data
+      - ./database/migrations/social:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d social_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Microservices
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://admin:password@auth-db:5432/auth_db
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - STORY_SERVICE_URL=http://story-service:5002
+      - SOCIAL_SERVICE_URL=http://social-service:5003
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  story-service:
+    build:
+      context: .
+      dockerfile: services/story-service/Dockerfile
+    container_name: story-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://admin:password@story-db:5432/story_db
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:5001
+    depends_on:
+      story-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  social-service:
+    build:
+      context: .
+      dockerfile: services/social-service/Dockerfile
+    container_name: social-service
+    ports:
+      - "5003:5003"
+    environment:
+      - PORT=5003
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://admin:password@social-db:5432/social_db
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - STORY_SERVICE_URL=http://story-service:5002
+    depends_on:
+      social-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      story-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: notification-service
+    ports:
+      - "5004:5004" # HTTP
+      - "8080:8080" # WebSocket
+    environment:
+      - PORT=5004
+      - WEBSOCKET_PORT=8080
+      - NODE_ENV=development
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  image-service:
+    build:
+      context: ./services/image-service
+      dockerfile: Dockerfile
+    container_name: image-service
+    ports:
+      - "5005:5005"
+    environment:
+      - PORT=5005
+      - UPLOAD_DIR=/app/uploads
+      - IMAGE_SERVICE_URL=http://localhost:5005
+    volumes:
+      - image-uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - STORY_SERVICE_URL=http://story-service:5002
+      - SOCIAL_SERVICE_URL=http://social-service:5003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5004
+      - CORS_ORIGIN=*
+    depends_on:
+      - auth-service
+      - story-service
+      - social-service
+      - notification-service
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  # Frontend (optional - using existing frontend)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.microservices
+    container_name: frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_BASE_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8080
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+volumes:
+  auth-db-data:
+  story-db-data:
+  social-db-data:
+  rabbitmq-data:
+  image-uploads:
+
+networks:
+  microservices-network:
+    driver: bridge
+

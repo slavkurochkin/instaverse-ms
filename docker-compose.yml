@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.microservices
+    ports:
+      - "3000:80"  # Map Nginx's port to host's port 3000
+    environment:
+      - NODE_ENV=production

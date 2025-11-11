@@ -1,0 +1,248 @@
+{
+  "consumer": {
+    "name": "WebConsumer"
+  },
+  "interactions": [
+    {
+      "description": "a request to get user profiles",
+      "request": {
+        "headers": {
+          "Accept": "application/json"
+        },
+        "method": "GET",
+        "path": "/profile/users"
+      },
+      "response": {
+        "body": [
+          {
+            "_id": "1",
+            "age": 37,
+            "bio": "Hello, my name is Slav, and I like photography",
+            "email": "admin@gmail.com",
+            "favorite_style": "outdoor",
+            "gender": "male",
+            "role": "admin",
+            "totalPosts": 1,
+            "username": "Admin User"
+          }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*]._id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].age": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].bio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].email": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].favorite_style": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].gender": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].role": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].totalPosts": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].username": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {}
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request to a specific user ID",
+      "providerStates": [
+        {
+          "name": "Has a user with specific ID",
+          "params": {
+            "userId": "1"
+          }
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": "application/json"
+        },
+        "method": "GET",
+        "path": "/profile/users/1"
+      },
+      "response": {
+        "body": {
+          "_id": "1",
+          "age": 37,
+          "bio": "Hello, my name is Slav, and I like photography",
+          "email": "admin@gmail.com",
+          "favorite_style": "outdoor",
+          "gender": "male",
+          "role": "admin",
+          "totalPosts": 1,
+          "username": "Admin User"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$._id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.age": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.bio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.email": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.favorite_style": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.gender": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.role": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.totalPosts": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.username": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "10.4.1"
+    },
+    "pactRust": {
+      "ffi": "0.4.0",
+      "models": "1.0.4"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "InstaverseAPI"
+  }
+}
