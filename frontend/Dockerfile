@@ -19,6 +19,9 @@ RUN npm run build
 # Use Nginx to serve the frontend app
 FROM nginx:alpine
 
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy the React build output to Nginx html directory
 COPY --from=build /app/build /usr/share/nginx/html
 

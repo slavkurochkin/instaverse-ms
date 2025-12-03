@@ -14,7 +14,7 @@ import {
   Divider,
   Select,
 } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { getUserProfiles } from '../../actions/profile';
 import { updateUser, deleteUser } from '../../actions/authentication';
@@ -303,6 +303,62 @@ function Dashboard() {
     setSearchText('');
     setSearchedColumn('');
     confirm({ closeDropdown: false });
+  };
+
+  const exportToCSV = () => {
+    if (!allUsersData || allUsersData.length === 0) {
+      message.warning('No data to export');
+      return;
+    }
+
+    // Define CSV headers based on table columns
+    const headers = [
+      'Username',
+      'Role',
+      'Age',
+      'Gender',
+      'Email',
+      'Favorite Style',
+      'Bio',
+      'Total Posts',
+    ];
+
+    // Convert data to CSV rows
+    const csvRows = [
+      headers.join(','), // Header row
+      ...allUsersData.map((user) => {
+        return [
+          `"${(user.username || '').replace(/"/g, '""')}"`,
+          `"${(user.role || '').replace(/"/g, '""')}"`,
+          user.age || '',
+          `"${(user.gender || '').replace(/"/g, '""')}"`,
+          `"${(user.email || '').replace(/"/g, '""')}"`,
+          `"${(user.favorite_style || 'N/A').replace(/"/g, '""')}"`,
+          `"${(user.bio || 'N/A').replace(/"/g, '""')}"`,
+          user.totalPosts || '0',
+        ].join(',');
+      }),
+    ];
+
+    // Create CSV content
+    const csvContent = csvRows.join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `users_export_${new Date().toISOString().split('T')[0]}.csv`,
+    );
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    message.success('Data exported successfully!');
   };
 
   const renderActions = (record, isAllUsersTable = false) => (
@@ -634,7 +690,28 @@ function Dashboard() {
         </Form>
       </Modal>
 
-      <Card title="All Users Data" style={{ marginTop: 24 }}>
+      <Card
+        title={
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span>All Users Data</span>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={exportToCSV}
+              style={{ marginLeft: 16 }}
+            >
+              Export CSV
+            </Button>
+          </div>
+        }
+        style={{ marginTop: 24 }}
+      >
         <Table
           columns={usersTableColumns}
           dataSource={allUsersData}
