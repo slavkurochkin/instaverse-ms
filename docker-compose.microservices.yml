@@ -196,6 +196,22 @@ services:
     networks:
       - microservices-network
 
+  langchain-service:
+    build:
+      context: .
+      dockerfile: services/langchain-service/Dockerfile
+    container_name: langchain-service
+    ports:
+      - "5006:5006"
+    env_file:
+      - services/langchain-service/.env
+    environment:
+      - PORT=5006
+      - NODE_ENV=development
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
   api-gateway:
     build:
       context: .
@@ -210,12 +226,14 @@ services:
       - STORY_SERVICE_URL=http://story-service:5002
       - SOCIAL_SERVICE_URL=http://social-service:5003
       - NOTIFICATION_SERVICE_URL=http://notification-service:5004
+      - LANGCHAIN_SERVICE_URL=http://langchain-service:5006
       - CORS_ORIGIN=*
     depends_on:
       - auth-service
       - story-service
       - social-service
       - notification-service
+      - langchain-service
     restart: unless-stopped
     networks:
       - microservices-network
