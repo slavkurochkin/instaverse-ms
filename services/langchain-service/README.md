@@ -136,6 +136,11 @@ sequenceDiagram
 - **Structured Output**: Generates posts with caption and optional call-to-action
 - **Platform Support**: Supports Instagram, Twitter, Facebook, and LinkedIn
 - **Customizable Tone**: Adjustable tone (friendly, professional, casual, enthusiastic)
+- **Model Evaluation**: Comprehensive evaluation system with multiple metrics
+  - Criteria-based evaluation (helpfulness, engagement, relevance, etc.)
+  - Embedding-based semantic similarity
+  - String distance metrics
+  - Batch evaluation support
 - **RESTful API**: FastAPI-based service with OpenAPI documentation
 - **Docker Ready**: Fully containerized and ready for deployment
 
@@ -185,11 +190,138 @@ POST /api/generate-post
 }
 ```
 
+### Evaluate Output
+
+```
+POST /api/evaluate
+```
+
+Evaluate a model output using multiple evaluation metrics (criteria-based, embedding similarity, string similarity).
+
+**Request Parameters:**
+
+- `prediction` (required): The model's output to evaluate
+- `reference` (optional): Reference/expected output for comparison
+- `input_text` (optional): The input that generated this prediction
+- `criteria` (optional): Custom evaluation criteria dictionary
+- `threshold` (optional): Score threshold for passing (default: 0.7, range: 0.0-1.0)
+
+**Request Body:**
+
+```json
+{
+  "prediction": "There's nothing quite like watching the sun paint the sky in shades of orange and pink. Nature's daily masterpiece never fails to amaze! 🌅",
+  "reference": "A beautiful sunset over the mountains with vibrant colors",
+  "input_text": "A beautiful sunset over the mountains with vibrant orange and pink colors painting the sky",
+  "criteria": {
+    "helpfulness": "Is the output helpful and relevant to the image description?",
+    "engagement": "Is the output engaging and likely to generate user interaction?"
+  },
+  "threshold": 0.7
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "passed": true,
+  "threshold": 0.7,
+  "average_score": 0.76,
+  "results": [
+    {
+      "metric_name": "criteria",
+      "score": 0.95,
+      "passed": true,
+      "reasoning": "The output is highly relevant, engaging, and appropriate for Instagram"
+    },
+    {
+      "metric_name": "embedding_distance",
+      "score": 0.87,
+      "passed": true,
+      "reasoning": "Semantic similarity: 0.87"
+    },
+    {
+      "metric_name": "string_distance",
+      "score": 0.45,
+      "passed": false,
+      "reasoning": "String similarity: 0.45"
+    }
+  ]
+}
+```
+
+### Batch Evaluation
+
+```
+POST /api/evaluate/batch
+```
+
+Run batch evaluation on multiple test cases. Can optionally generate predictions using the model.
+
+**Request Body:**
+
+```json
+{
+  "generate_predictions": true,
+  "test_cases": [
+    {
+      "input_text": "A beautiful sunset over the mountains with vibrant orange and pink colors",
+      "reference": "A sunset post about mountains and nature",
+      "platform": "instagram",
+      "tone": "friendly"
+    },
+    {
+      "input_text": "A cozy coffee shop with vintage decor and plants",
+      "reference": "A coffee shop post with cozy atmosphere",
+      "platform": "instagram",
+      "tone": "casual"
+    }
+  ]
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "summary": {
+    "total_tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "average_score": 0.82,
+    "metrics": {
+      "criteria": 0.85,
+      "embedding_distance": 0.79
+    }
+  },
+  "detailed_results": [
+    {
+      "test_case_index": 0,
+      "input": "A beautiful sunset over the mountains...",
+      "prediction": "There's nothing quite like watching...",
+      "reference": "A sunset post about mountains and nature",
+      "platform": "instagram",
+      "tone": "friendly",
+      "evaluation_results": [...],
+      "average_score": 0.82,
+      "passed": true
+    }
+  ]
+}
+```
+
 ## Environment Variables
 
 The service uses a `.env` file for configuration. Create a `.env` file in the `services/langchain-service/` directory with the following variables:
 
 - `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `EVALUATION_MODEL`: Model to use for evaluation/judging (default: "gpt-4o")
+  - Options: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-3.5-turbo`, etc.
+  - Use a cheaper model (e.g., `gpt-4o-mini`) for evaluation to save costs
+  - Post generation always uses `gpt-4o` (hardcoded)
 - `LANGSMITH_TRACING`: Enable LangSmith tracing (true/false, default: false)
 - `LANGSMITH_API_KEY`: Your LangSmith API key (required if tracing is enabled)
 - `LANGSMITH_PROJECT`: LangSmith project name (default: "langchain-service")
@@ -310,6 +442,44 @@ response = requests.post(
 )
 
 print(response.json())
+```
+
+### Testing Evaluation Endpoints
+
+You can use the provided example script:
+
+```bash
+cd services/langchain-service
+python example_evaluation.py
+```
+
+Or test manually:
+
+```bash
+# Single evaluation
+curl -X POST "http://localhost:5006/api/evaluate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prediction": "A beautiful sunset over mountains",
+    "input_text": "A sunset scene with mountains",
+    "criteria": {
+      "relevance": "Is the output relevant?"
+    }
+  }'
+
+# Batch evaluation
+curl -X POST "http://localhost:5006/api/evaluate/batch" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "generate_predictions": true,
+    "test_cases": [
+      {
+        "input_text": "A beautiful sunset",
+        "platform": "instagram",
+        "tone": "friendly"
+      }
+    ]
+  }'
 ```
 
 ## API Documentation
@@ -628,3 +798,185 @@ class SocialMediaPost(BaseModel):
 #    'tags': ['string', ...] or null
 #  }"
 ```
+
+## Model Evaluation
+
+The service includes a comprehensive evaluation system powered by LangChain's evaluation framework. This allows you to assess model performance, quality, and consistency.
+
+**Note:** The evaluation system uses a separate LLM (configurable via `EVALUATION_MODEL` environment variable) from the post generation model. This allows you to:
+
+- Use a cheaper/faster model for evaluation (e.g., `gpt-4o-mini`) to reduce costs
+- Use a more powerful model for evaluation if needed (e.g., `gpt-4-turbo`)
+- Keep post generation using `gpt-4o` for quality while optimizing evaluation costs
+
+### Evaluation Metrics
+
+The service supports multiple evaluation metrics:
+
+1. **Criteria-Based Evaluation**: Evaluates output against custom criteria using an LLM judge
+   - Default criteria: helpfulness, conciseness, engagement, appropriateness
+   - Custom criteria can be specified per evaluation
+   - Returns score (0.0-1.0) with reasoning and pass/fail status
+   - Configurable threshold (default: 0.7) determines pass/fail
+
+2. **Embedding Distance**: Measures semantic similarity between prediction and reference
+   - Uses embedding vectors to compare meaning
+   - Higher scores indicate better semantic match
+   - Useful when exact text match isn't required
+
+3. **String Distance**: Measures exact/approximate string matching
+   - Useful for exact output validation
+   - Returns similarity score based on string comparison algorithms
+
+### Evaluation Use Cases
+
+1. **Quality Assurance**: Regularly evaluate model outputs to ensure quality standards
+2. **A/B Testing**: Compare different prompts or model configurations
+3. **Regression Testing**: Ensure model improvements don't degrade performance
+4. **Performance Monitoring**: Track model performance over time
+5. **Custom Criteria**: Evaluate against domain-specific requirements
+
+### Example Evaluation Workflow
+
+```python
+import requests
+
+# 1. Generate a post
+response = requests.post(
+    "http://localhost:5006/api/generate-post",
+    json={
+        "image_description": "A beautiful sunset",
+        "platform": "instagram",
+        "tone": "friendly"
+    }
+)
+post = response.json()["post"]
+
+# 2. Evaluate the generated post
+eval_response = requests.post(
+    "http://localhost:5006/api/evaluate",
+    json={
+        "prediction": post["caption"],
+        "input_text": "A beautiful sunset",
+        "threshold": 0.7,
+        "criteria": {
+            "relevance": "Is the caption relevant to the image?",
+            "engagement": "Will this generate likes and comments?"
+        }
+    }
+)
+
+results = eval_response.json()
+print(f"Passed: {results['passed']}")
+print(f"Threshold: {results['threshold']}")
+print(f"Average Score: {results['average_score']}")
+for result in results['results']:
+    print(f"{result['metric_name']}: {result['score']} (Passed: {result['passed']})")
+```
+
+### Batch Evaluation
+
+For systematic evaluation, use batch evaluation to test multiple cases:
+
+```python
+response = requests.post(
+    "http://localhost:5006/api/evaluate/batch",
+    json={
+        "generate_predictions": True,
+        "test_cases": [
+            {
+                "input_text": "A sunset over mountains",
+                "platform": "instagram",
+                "tone": "friendly"
+            },
+            {
+                "input_text": "A coffee shop interior",
+                "platform": "instagram",
+                "tone": "casual"
+            }
+        ]
+    }
+)
+
+summary = response.json()["summary"]
+print(f"Passed: {summary['passed']}/{summary['total_tests']}")
+print(f"Average Score: {summary['average_score']}")
+```
+
+### Evaluation Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              Model Evaluation Architecture                  │
+└─────────────────────────────────────────────────────────────┘
+
+  Input/Test Case
+  ┌──────────────────────┐
+  │  Image Description    │
+  │  Platform, Tone      │
+  └──────────┬───────────┘
+             │
+             ▼
+  ┌──────────────────────┐
+  │  Model Generation    │
+  │  (GPT-4o)            │
+  └──────────┬───────────┘
+             │
+             │ Generated Output
+             ▼
+  ┌──────────────────────┐
+  │  Evaluation Runner    │
+  │  - Criteria Evaluator │
+  │  - Embedding Distance│
+  │  - String Distance    │
+  └──────────┬───────────┘
+             │
+             │ Evaluation Results
+             ▼
+  ┌──────────────────────┐
+  │  Evaluation Results  │
+  │  - Scores            │
+  │  - Reasoning         │
+  │  - Summary Stats     │
+  └──────────────────────┘
+```
+
+### Custom Evaluation Criteria
+
+You can define custom criteria for your specific use case:
+
+```python
+custom_criteria = {
+    "brand_voice": "Does the output match our brand voice guidelines?",
+    "call_to_action": "Is there an effective call to action?",
+    "hashtag_relevance": "Are the hashtags relevant and trending?",
+    "length_appropriate": "Is the length appropriate for the platform?"
+}
+
+response = requests.post(
+    "http://localhost:5006/api/evaluate",
+    json={
+        "prediction": generated_caption,
+        "input_text": image_description,
+        "threshold": 0.7,
+        "criteria": custom_criteria
+    }
+)
+
+# Check results
+results = response.json()
+print(f"Overall Passed: {results['passed']}")
+print(f"Threshold Used: {results['threshold']}")
+for result in results['results']:
+    status = "✓ PASSED" if result['passed'] else "✗ FAILED"
+    print(f"{result['metric_name']}: {result['score']:.2f} {status}")
+```
+
+### Evaluation Best Practices
+
+1. **Establish Baselines**: Run evaluations on a standard test set to establish baseline scores
+2. **Regular Monitoring**: Schedule periodic batch evaluations to track model performance
+3. **Custom Criteria**: Define criteria specific to your use case and quality standards
+4. **Reference Data**: When possible, provide reference outputs for more accurate evaluation
+5. **Threshold Setting**: Set passing thresholds (e.g., 0.7) based on your quality requirements
+6. **Iterative Improvement**: Use evaluation results to refine prompts and model parameters
