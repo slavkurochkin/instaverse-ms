@@ -11,3 +11,5 @@ frontend/coverage
 frontend/build
 services/shared/node_modules
 
+services/langchain-service/.env
+

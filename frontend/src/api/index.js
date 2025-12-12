@@ -66,5 +66,13 @@ export const uploadImage = async (imageData) =>
 export const deleteImage = async (filename) =>
   api.delete(`/api/images/${filename}`);
 
+// LangChain APIs - route through API Gateway to LangChain Service
+export const generatePost = async (imageDescription, platform, tone) =>
+  api.post('/api/langchain/api/generate-post', {
+    image_description: imageDescription,
+    platform: platform || 'instagram',
+    tone: tone || 'friendly',
+  });
+
 // export const fetchProfile = async () => api.get("/user/profile");
 // export const updateProfile = async (formValues) => api.post("/user/profile", formValues);

@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js';
 import storyRoutes from './routes/story.routes.js';
 import socialRoutes from './routes/social.routes.js';
 import imageRoutes from './routes/image.routes.js';
+import langchainRoutes from './routes/langchain.routes.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler, notFoundHandler } from '../../shared/middleware/errorHandler.js';
 import { createLogger } from '../../shared/utils/logger.js';
@@ -54,6 +55,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/langchain', langchainRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
@@ -69,6 +71,7 @@ app.listen(PORT, () => {
     auth: process.env.AUTH_SERVICE_URL,
     story: process.env.STORY_SERVICE_URL,
     social: process.env.SOCIAL_SERVICE_URL,
+    langchain: process.env.LANGCHAIN_SERVICE_URL,
   });
 });
 

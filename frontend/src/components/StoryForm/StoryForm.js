@@ -9,6 +9,9 @@ import {
   Select,
   Checkbox,
   Progress,
+  Modal,
+  message,
+  Space,
 } from 'antd';
 import FileBase64 from 'react-file-base64';
 import { useDispatch } from 'react-redux';
@@ -28,11 +31,14 @@ function StoryForm({
   handleClose = () => {},
 }) {
   const [form] = Form.useForm();
+  const [aiForm] = Form.useForm();
   const dispatch = useDispatch();
   const user = JSON.parse(localStorage.getItem('profile'));
   const [uploadProgress, setUploadProgress] = useState(0); // State for tracking upload progress
   const [showProgressBar, setShowProgressBar] = useState(false); // State to control visibility of progress bar
   const [showSuccess, setShowSuccess] = useState(false); // State to control visibility of success message
+  const [isAiModalVisible, setIsAiModalVisible] = useState(false); // State for AI generation modal
+  const [isGenerating, setIsGenerating] = useState(false); // State for AI generation loading
 
   const story = useSelector((state) =>
     selectedId ? state.stories.find((story) => story._id === selectedId) : null,
@@ -122,6 +128,63 @@ function StoryForm({
     setSelectedId(null);
   };
 
+  const handleGenerateWithAI = async (values) => {
+    setIsGenerating(true);
+    try {
+      const response = await api.generatePost(
+        values.image_description,
+        values.platform,
+        values.tone,
+      );
+
+      if (response.data && response.data.success) {
+        const { caption, call_to_action, tags } = response.data.post;
+
+        // Combine caption and call_to_action
+        const fullCaption = call_to_action
+          ? `${caption}\n\n${call_to_action}`
+          : caption;
+
+        // Convert tags array to comma-separated string if tags exist
+        const tagsString =
+          tags && Array.isArray(tags)
+            ? tags
+                .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
+                .join(', ')
+            : '';
+
+        // Set the caption and tags field values
+        form.setFieldsValue({
+          caption: fullCaption,
+          tags: tagsString,
+        });
+
+        message.success('Caption and tags generated successfully!');
+        setIsAiModalVisible(false);
+        aiForm.resetFields();
+      } else {
+        message.error('Failed to generate caption');
+      }
+    } catch (error) {
+      console.error('Error generating caption:', error);
+      message.error(
+        error.response?.data?.detail ||
+          'Failed to generate caption. Please try again.',
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const showAiModal = () => {
+    setIsAiModalVisible(true);
+  };
+
+  const handleAiModalCancel = () => {
+    setIsAiModalVisible(false);
+    aiForm.resetFields();
+  };
+
   if (!user) {
     return (
       <Card style={styles.formCard}>
@@ -164,6 +227,16 @@ function StoryForm({
               message: 'Please enter caption',
             },
           ]}
+          extra={
+            <Button
+              type="dashed"
+              onClick={showAiModal}
+              style={{ marginTop: 8 }}
+              icon={<span>✨</span>}
+            >
+              Generate with AI
+            </Button>
+          }
         >
           <Input.TextArea
             allowClear
@@ -273,6 +346,84 @@ function StoryForm({
           </Form.Item>
         )}
       </Form>
+
+      {/* AI Generation Modal */}
+      <Modal
+        title="Generate Caption with AI"
+        open={isAiModalVisible}
+        onCancel={handleAiModalCancel}
+        footer={null}
+        width={600}
+      >
+        <Form form={aiForm} layout="vertical" onFinish={handleGenerateWithAI}>
+          <Form.Item
+            name="image_description"
+            label="Image Description"
+            rules={[
+              {
+                required: true,
+                message: 'Please describe your image',
+              },
+              {
+                min: 10,
+                message: 'Description must be at least 10 characters',
+              },
+            ]}
+          >
+            <Input.TextArea
+              placeholder="Describe the image you want to create a post for..."
+              autoSize={{ minRows: 3, maxRows: 6 }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="platform"
+            label="Platform"
+            initialValue="instagram"
+            rules={[
+              {
+                required: true,
+                message: 'Please select a platform',
+              },
+            ]}
+          >
+            <Select>
+              <Select.Option value="instagram">Instagram</Select.Option>
+              <Select.Option value="twitter">Twitter</Select.Option>
+              <Select.Option value="facebook">Facebook</Select.Option>
+              <Select.Option value="linkedin">LinkedIn</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="tone"
+            label="Tone"
+            initialValue="friendly"
+            rules={[
+              {
+                required: true,
+                message: 'Please select a tone',
+              },
+            ]}
+          >
+            <Select>
+              <Select.Option value="friendly">Friendly</Select.Option>
+              <Select.Option value="professional">Professional</Select.Option>
+              <Select.Option value="casual">Casual</Select.Option>
+              <Select.Option value="enthusiastic">Enthusiastic</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={isGenerating}>
+                Generate Caption
+              </Button>
+              <Button onClick={handleAiModalCancel}>Cancel</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 }
