@@ -142,7 +142,7 @@ export default function StoryList({ setSelectedId }) {
       { key: 'animals', label: 'Animals' },
       { key: 'nature', label: 'Nature' },
       { key: 'portrait', label: 'Portrait' },
-      { key: 'sport', label: 'Sport' },
+      { key: 'travel', label: 'Travel' },
     ],
     selectedCategory,
     handleCategoryChange,

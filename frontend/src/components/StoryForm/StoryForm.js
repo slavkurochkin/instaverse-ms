@@ -261,7 +261,7 @@ function StoryForm({
             <Select.Option value="animals">Animals</Select.Option>
             <Select.Option value="nature">Nature</Select.Option>
             <Select.Option value="portrait">Portraite</Select.Option>
-            <Select.Option value="sport">Sport</Select.Option>
+            <Select.Option value="travel">Travel</Select.Option>
           </Select>
         </Form.Item>
         <Form.Item name="device" label="Taken on:">

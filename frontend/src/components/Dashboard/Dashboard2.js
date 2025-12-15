@@ -46,7 +46,7 @@ const initialData = [
     name: 'Jim Green',
     age: 42,
     address: '456 Elm St, London',
-    tags: ['sport', 'animals'],
+    tags: ['travel', 'animals'],
     postsPerMonth: {
       January: 6,
       February: 4,
@@ -90,7 +90,7 @@ const initialData = [
     name: 'Sara White',
     age: 42,
     address: '101 Oak St, Tokyo',
-    tags: ['portrait', 'sport'],
+    tags: ['portrait', 'travel'],
     postsPerMonth: {
       January: 5,
       February: 3,
@@ -134,7 +134,7 @@ const initialData = [
     name: 'Emma Brown',
     age: 40,
     address: '303 Cedar St, Berlin',
-    tags: ['sport', 'portrait'],
+    tags: ['travel', 'portrait'],
     postsPerMonth: {
       January: 7,
       February: 4,
@@ -178,7 +178,7 @@ const initialData = [
     name: 'Olivia Smith',
     age: 30,
     address: '505 Spruce St, Rome',
-    tags: ['sport'],
+    tags: ['travel'],
     postsPerMonth: {
       January: 6,
       February: 5,
@@ -244,7 +244,7 @@ const initialData = [
     name: 'Noah Davis',
     age: 29,
     address: '808 Redwood St, Dubai',
-    tags: ['sport'],
+    tags: ['travel'],
     postsPerMonth: {
       January: 5,
       February: 6,
@@ -310,7 +310,7 @@ const initialData = [
     name: 'Isabella Anderson',
     age: 31,
     address: '1111 Fir St, New Delhi',
-    tags: ['portrait', 'sport'],
+    tags: ['portrait', 'travel'],
     postsPerMonth: {
       January: 7,
       February: 5,
@@ -354,7 +354,7 @@ const initialData = [
     name: 'Mia Clark',
     age: 26,
     address: '1313 Elm St, Sao Paulo',
-    tags: ['sport', 'animals'],
+    tags: ['travel', 'animals'],
     postsPerMonth: {
       January: 5,
       February: 7,
@@ -420,7 +420,7 @@ const initialData = [
     name: 'Henry King',
     age: 41,
     address: '1616 Cedar St, Cape Town',
-    tags: ['sport'],
+    tags: ['travel'],
     postsPerMonth: {
       January: 5,
       February: 6,
@@ -668,7 +668,7 @@ function Dashboard() {
         <>
           {tags.map((tag) => {
             let color = tag.length > 5 ? 'geekblue' : 'green';
-            if (tag === 'sport') {
+            if (tag === 'travel') {
               color = 'volcano';
             } else if (tag === 'portrait') {
               color = 'purple';
