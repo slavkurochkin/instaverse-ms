@@ -17,8 +17,10 @@ export const getProfile = () => async (dispatch) => {
 export const getUserProfile = (id) => async (dispatch) => {
   try {
     const { data } = await api.getUserProfile(id); // Fetch user profile data
-    dispatch({ type: 'FETCH_USER_PROFILE_SUCCESS', payload: data });
-    return data;
+    // Extract user from nested response: { user: {...} }
+    const user = data?.user || data;
+    dispatch({ type: 'FETCH_USER_PROFILE_SUCCESS', payload: user });
+    return user;
   } catch (error) {
     console.log(error);
   }

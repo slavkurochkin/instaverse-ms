@@ -125,6 +125,16 @@ export default function Profile() {
         setUserProfile(profile);
         setUserStories(stories);
 
+        // Update username and bio from fetched profile
+        if (profile) {
+          if (profile.username) {
+            setUsername(profile.username);
+          }
+          if (profile.bio) {
+            setBio(profile.bio);
+          }
+        }
+
         // If viewing own profile, update avatar if no uploaded avatar exists
         if (!userId && profile && !profile.avatar && !user?.result?.avatar) {
           const placeholder = getAvatarPlaceholder(
@@ -349,7 +359,7 @@ export default function Profile() {
                 />
               ) : (
                 <div>
-                  {userId ? userProfile?.username : username}{' '}
+                  {(userId ? userProfile?.username : username) || 'No username'}{' '}
                   {!userId && !isEditingName && (
                     <EditOutlined
                       style={{ marginLeft: 8, cursor: 'pointer' }}
@@ -374,7 +384,7 @@ export default function Profile() {
                 />
               ) : (
                 <div>
-                  {userId ? userProfile?.bio : bio}{' '}
+                  {(userId ? userProfile?.bio : bio) || 'No bio yet'}{' '}
                   {!userId && !isEditingBio && (
                     <EditOutlined
                       style={{ marginLeft: 8, cursor: 'pointer' }}
