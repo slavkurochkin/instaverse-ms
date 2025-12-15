@@ -684,7 +684,7 @@ function Dashboard() {
               <Select.Option value="animals">Animals</Select.Option>
               <Select.Option value="nature">Nature</Select.Option>
               <Select.Option value="portrait">Portrait</Select.Option>
-              <Select.Option value="sport">Sport</Select.Option>
+              <Select.Option value="travel">Travel</Select.Option>
             </Select>
           </Form.Item>
         </Form>
