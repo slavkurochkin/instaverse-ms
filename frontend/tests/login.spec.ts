@@ -42,7 +42,7 @@ test('login via API and navigate page', async ({ page, request }) => {
   );
 
   // Navigate to the home page
-  await page.goto('http://localhost:3001/');
+  await page.goto('http://localhost:3000/');
 
   // Verify user is logged in by checking for authenticated content
   const homePage = new HomePage(page);

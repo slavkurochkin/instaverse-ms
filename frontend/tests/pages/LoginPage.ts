@@ -17,7 +17,7 @@ export class LoginPage {
       .getByRole('button', { name: 'Log In' });
   }
 
-  async goto(url: string = 'http://localhost:3001/') {
+  async goto(url: string = 'http://localhost:3000/') {
     await this.page.goto(url);
   }
 
