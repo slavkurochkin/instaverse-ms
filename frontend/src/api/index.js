@@ -74,5 +74,10 @@ export const generatePost = async (imageDescription, platform, tone) =>
     tone: tone || 'friendly',
   });
 
+export const analyzeProfile = async (userId) =>
+  api.post('/api/langchain/api/analyze-profile', {
+    user_id: userId,
+  });
+
 // export const fetchProfile = async () => api.get("/user/profile");
 // export const updateProfile = async (formValues) => api.post("/user/profile", formValues);
