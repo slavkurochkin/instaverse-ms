@@ -4,6 +4,7 @@ import {
   UPDATE_USER,
   DELETE_USER,
 } from '../constants/actionTypes';
+import { clearTracingSession } from '../tracingSession';
 
 const authenticationReducer = (state = { authData: null }, action) => {
   switch (action.type) {
@@ -16,6 +17,7 @@ const authenticationReducer = (state = { authData: null }, action) => {
       };
     case LOGOUT:
       localStorage.clear();
+      clearTracingSession();
 
       return {
         ...state,

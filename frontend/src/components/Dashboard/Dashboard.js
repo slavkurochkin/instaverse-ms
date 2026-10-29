@@ -23,6 +23,7 @@ import {
   deleteUserStories,
   deleteUserComments,
 } from '../../actions/stories';
+import { consumeNavigationTrace } from '../../navigationTracing';
 import { Pie, Line } from 'react-chartjs-2'; // Import Line chart
 import { Filler } from 'chart.js';
 import {
@@ -68,16 +69,21 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchUsersData = async () => {
-      const profiles = await dispatch(getUserProfiles());
-      setAllUsersData(profiles);
-    };
-    fetchUsersData();
+      await consumeNavigationTrace(async (navigationSpan) => {
+        navigationSpan?.setAttribute('app.navigation.route', '/dashboard');
+        navigationSpan?.addEvent('dashboard.data.fetch.started');
 
-    const fetchStoriesData = async () => {
-      const stories = await dispatch(getStories());
-      setStoriesData(stories);
+        const [profiles, stories] = await Promise.all([
+          dispatch(getUserProfiles()),
+          dispatch(getStories()),
+        ]);
+
+        setAllUsersData(profiles);
+        setStoriesData(stories);
+      });
     };
-    fetchStoriesData();
+
+    fetchUsersData();
   }, [dispatch]);
 
   const calculateTotalPosts = () => {

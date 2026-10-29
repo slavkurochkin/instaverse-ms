@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { EditOutlined, CheckOutlined, CameraOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  CheckOutlined,
+  CameraOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import {
   Avatar,
   Card,
@@ -9,6 +14,9 @@ import {
   Modal,
   Upload,
   Button,
+  Typography,
+  Divider,
+  Tag,
 } from 'antd';
 import styles from './styles'; // Import styles
 import { useDispatch } from 'react-redux';
@@ -20,8 +28,11 @@ import {
 import StoryList from '../StoryList';
 import StoryForm from '../StoryForm'; // Import StoryForm component
 import { useLocation } from 'react-router-dom'; // Import useLocation
+import { analyzeProfile } from '../../api';
+import { consumeNavigationTrace } from '../../navigationTracing';
 
 const { Meta } = Card;
+const { Title, Paragraph, Text } = Typography;
 
 // Helper function to get gender-based avatar placeholder
 const getAvatarPlaceholder = (gender, userId = null) => {
@@ -118,31 +129,40 @@ export default function Profile() {
   useEffect(() => {
     if (id) {
       const fetchUserData = async () => {
-        const profile = await dispatch(getUserProfile(id)); // Fetch user profile
-        const stories = await dispatch(getUserStories(id)); // Fetch stories
-
-        // Store the user profile in local state
-        setUserProfile(profile);
-        setUserStories(stories);
-
-        // Update username and bio from fetched profile
-        if (profile) {
-          if (profile.username) {
-            setUsername(profile.username);
-          }
-          if (profile.bio) {
-            setBio(profile.bio);
-          }
-        }
-
-        // If viewing own profile, update avatar if no uploaded avatar exists
-        if (!userId && profile && !profile.avatar && !user?.result?.avatar) {
-          const placeholder = getAvatarPlaceholder(
-            profile.gender || user?.result?.gender,
-            profile._id || user?.result?._id,
+        await consumeNavigationTrace(async (navigationSpan) => {
+          navigationSpan?.setAttribute('app.navigation.route', '/profile');
+          navigationSpan?.setAttribute(
+            'app.navigation.profile_target',
+            userId || currentUser || 'unknown',
           );
-          setAvatar(placeholder);
-        }
+          navigationSpan?.addEvent('profile.data.fetch.started');
+
+          const profile = await dispatch(getUserProfile(id)); // Fetch user profile
+          const stories = await dispatch(getUserStories(id)); // Fetch stories
+
+          // Store the user profile in local state
+          setUserProfile(profile);
+          setUserStories(stories);
+
+          // Update username and bio from fetched profile
+          if (profile) {
+            if (profile.username) {
+              setUsername(profile.username);
+            }
+            if (profile.bio) {
+              setBio(profile.bio);
+            }
+          }
+
+          // If viewing own profile, update avatar if no uploaded avatar exists
+          if (!userId && profile && !profile.avatar && !user?.result?.avatar) {
+            const placeholder = getAvatarPlaceholder(
+              profile.gender || user?.result?.gender,
+              profile._id || user?.result?._id,
+            );
+            setAvatar(placeholder);
+          }
+        });
       };
 
       fetchUserData();
@@ -169,6 +189,9 @@ export default function Profile() {
     user?.result?.avatar ||
       getAvatarPlaceholder(user?.result?.gender, user?.result?._id),
   );
+  const [isAnalysisModalVisible, setIsAnalysisModalVisible] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [profileAnalysis, setProfileAnalysis] = useState(null);
 
   useEffect(() => {
     document.title = 'Instaverse'; // Set document title on component mount
@@ -296,6 +319,40 @@ export default function Profile() {
     return false; // Prevent default upload behavior
   };
 
+  const handleAnalyzeProfile = async () => {
+    const targetUserId = userId || id;
+    if (!targetUserId) {
+      message.error('Unable to analyze profile: User ID not found');
+      return;
+    }
+
+    setAnalysisLoading(true);
+    setIsAnalysisModalVisible(true);
+
+    try {
+      const response = await analyzeProfile(parseInt(targetUserId));
+      if (response.data && response.data.success) {
+        setProfileAnalysis(response.data);
+        message.success('Profile analysis generated successfully!');
+      } else {
+        message.error('Failed to generate profile analysis');
+      }
+    } catch (error) {
+      console.error('Profile analysis error:', error);
+      message.error(
+        error.response?.data?.detail ||
+          'Failed to analyze profile. Please try again.',
+      );
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  const handleCloseAnalysisModal = () => {
+    setIsAnalysisModalVisible(false);
+    setProfileAnalysis(null);
+  };
+
   return (
     <div style={styles.center} className={styles.profileContainer}>
       <style>{`.ant-spin-nested-loading { ${styles.spinOverlay} }`}</style>
@@ -401,6 +458,17 @@ export default function Profile() {
               )
             }
           />
+          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <Button
+              type="primary"
+              icon={<InfoCircleOutlined />}
+              onClick={handleAnalyzeProfile}
+              loading={analysisLoading}
+              size="large"
+            >
+              Tell me more about this profile
+            </Button>
+          </div>
         </Card>
       </Spin>
 
@@ -422,6 +490,104 @@ export default function Profile() {
           page={'profile'}
           handleClose={handleModalClose}
         />
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <InfoCircleOutlined
+              style={{ fontSize: '20px', color: '#1890ff' }}
+            />
+            <span>Profile Analysis</span>
+          </div>
+        }
+        open={isAnalysisModalVisible}
+        onCancel={handleCloseAnalysisModal}
+        footer={[
+          <Button key="close" onClick={handleCloseAnalysisModal}>
+            Close
+          </Button>,
+        ]}
+        width={700}
+      >
+        <Spin spinning={analysisLoading} tip="Analyzing profile...">
+          {profileAnalysis && profileAnalysis.analysis && (
+            <div style={{ padding: '8px 0' }}>
+              <Title level={4}>Summary</Title>
+              <Paragraph>{profileAnalysis.analysis.summary}</Paragraph>
+
+              <Divider />
+
+              <Title level={4}>Content Style</Title>
+              <Paragraph>{profileAnalysis.analysis.content_style}</Paragraph>
+
+              <Divider />
+
+              <Title level={4}>Engagement Level</Title>
+              <Paragraph>{profileAnalysis.analysis.engagement_level}</Paragraph>
+
+              <Divider />
+
+              <Title level={4}>Strengths</Title>
+              <ul style={{ paddingLeft: '20px' }}>
+                {profileAnalysis.analysis.strengths.map((strength, index) => (
+                  <li key={index} style={{ marginBottom: '8px' }}>
+                    <Text>{strength}</Text>
+                  </li>
+                ))}
+              </ul>
+
+              {profileAnalysis.analysis.recommendations &&
+                profileAnalysis.analysis.recommendations.length > 0 && (
+                  <>
+                    <Divider />
+                    <Title level={4}>Recommendations</Title>
+                    <ul style={{ paddingLeft: '20px' }}>
+                      {profileAnalysis.analysis.recommendations.map(
+                        (recommendation, index) => (
+                          <li key={index} style={{ marginBottom: '8px' }}>
+                            <Text>{recommendation}</Text>
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </>
+                )}
+
+              {profileAnalysis.metrics && (
+                <>
+                  <Divider />
+                  <Title level={5}>Key Metrics</Title>
+                  <div
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
+                  >
+                    <Tag color="blue">
+                      Total Posts: {profileAnalysis.metrics.total_posts}
+                    </Tag>
+                    <Tag color="green">
+                      Avg Likes: {profileAnalysis.metrics.avg_likes?.toFixed(1)}{' '}
+                    </Tag>
+                    <Tag color="orange">
+                      Avg Comments:{' '}
+                      {profileAnalysis.metrics.avg_comments?.toFixed(1)}
+                    </Tag>
+                    <Tag color="purple">
+                      Response Rate:{' '}
+                      {profileAnalysis.metrics.response_rate?.toFixed(1)}%
+                    </Tag>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {!analysisLoading && !profileAnalysis && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Text type="secondary">
+                Click the button to generate profile analysis
+              </Text>
+            </div>
+          )}
+        </Spin>
       </Modal>
     </div>
   );

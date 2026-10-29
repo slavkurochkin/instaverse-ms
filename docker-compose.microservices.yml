@@ -82,6 +82,39 @@ services:
     networks:
       - microservices-network
 
+  # Local tracing backend
+  jaeger:
+    image: jaegertracing/all-in-one:1.59
+    container_name: instaverse-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_OTLP_HTTP_HOST_PORT=:4318
+      - COLLECTOR_OTLP_GRPC_HOST_PORT=:4317
+    ports:
+      - "16686:16686" # Jaeger UI
+    expose:
+      - "4317" # OTLP gRPC
+      - "4318" # OTLP HTTP
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.153.0
+    container_name: instaverse-otel-collector
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4318:4318" # Browser OTLP/HTTP
+    depends_on:
+      jaeger:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
   # Microservices
   auth-service:
     build:
@@ -93,6 +126,9 @@ services:
     environment:
       - PORT=5001
       - NODE_ENV=development
+      - OTEL_SERVICE_NAME=auth-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=instaverse,deployment.environment=development
       - DATABASE_URL=postgresql://admin:password@auth-db:5432/auth_db
       - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
@@ -104,6 +140,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     restart: unless-stopped
     networks:
       - microservices-network
@@ -192,6 +230,12 @@ services:
       - IMAGE_SERVICE_URL=http://localhost:5005
     volumes:
       - image-uploads:/app/uploads
+    # So `docker compose up --wait` waits until it answers (it had no healthcheck).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5005/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
     restart: unless-stopped
     networks:
       - microservices-network
@@ -222,6 +266,9 @@ services:
     environment:
       - PORT=8000
       - NODE_ENV=development
+      - OTEL_SERVICE_NAME=api-gateway
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=instaverse,deployment.environment=development
       - AUTH_SERVICE_URL=http://auth-service:5001
       - STORY_SERVICE_URL=http://story-service:5002
       - SOCIAL_SERVICE_URL=http://social-service:5003
@@ -234,6 +281,7 @@ services:
       - social-service
       - notification-service
       - langchain-service
+      - jaeger
     restart: unless-stopped
     networks:
       - microservices-network
@@ -243,14 +291,29 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.microservices
+      args:
+        # Baked into the production bundle at build time (CRA inlines REACT_APP_*).
+        REACT_APP_LD_CLIENT_ID: ${REACT_APP_LD_CLIENT_ID}
     container_name: frontend
     ports:
       - "3000:80"
     environment:
       - REACT_APP_BASE_URL=http://localhost:8000
       - REACT_APP_WS_URL=ws://localhost:8080
+      - REACT_APP_OTEL_ENABLED=true
+      - REACT_APP_OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
+      - REACT_APP_OTEL_PROPAGATION_TARGET=http://localhost:8000
+      - REACT_APP_OTEL_SERVICE_NAME=instaverse-frontend
     depends_on:
       - api-gateway
+      - otel-collector
+    # Without this, `up --wait` returns as soon as the container starts, before nginx
+    # answers, and the first E2E test can hit a frontend that isn't serving yet.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
     restart: unless-stopped
     networks:
       - microservices-network

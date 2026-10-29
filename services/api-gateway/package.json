@@ -5,18 +5,28 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "node --import ./src/instrumentation.js --experimental-loader=@opentelemetry/instrumentation/hook.mjs src/index.js",
+    "dev": "nodemon --exec \"node --import ./src/instrumentation.js --experimental-loader=@opentelemetry/instrumentation/hook.mjs\" src/index.js",
     "test": "echo \"Tests not yet implemented\" && exit 0"
   },
-  "keywords": ["api-gateway", "microservice", "routing"],
+  "keywords": [
+    "api-gateway",
+    "microservice",
+    "routing"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
+    "@opentelemetry/auto-instrumentations-node": "^0.76.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
+    "@opentelemetry/instrumentation": "^0.218.0",
+    "@opentelemetry/resources": "^2.7.1",
+    "@opentelemetry/sdk-node": "^0.218.0",
+    "@opentelemetry/semantic-conventions": "^1.41.1",
     "axios": "^1.6.0",
-    "dotenv": "^16.0.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0"
   },
@@ -24,4 +34,3 @@
     "nodemon": "^3.0.1"
   }
 }
-

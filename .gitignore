@@ -12,4 +12,5 @@ frontend/build
 services/shared/node_modules
 
 services/langchain-service/.env
-
+services/api-gateway/node_modules
+services/auth-service/node_modules

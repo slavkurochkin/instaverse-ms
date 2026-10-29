@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSessionPropagationHeaders } from '../tracingSession';
 
 // Use API Gateway for microservices or fallback to localhost:5001 for monolith
 const api = axios.create({
@@ -6,6 +7,11 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((req) => {
+  req.headers = {
+    ...req.headers,
+    ...getSessionPropagationHeaders(),
+  };
+
   if (localStorage.getItem('profile')) {
     const profile = JSON.parse(localStorage.getItem('profile'));
 
@@ -72,6 +78,11 @@ export const generatePost = async (imageDescription, platform, tone) =>
     image_description: imageDescription,
     platform: platform || 'instagram',
     tone: tone || 'friendly',
+  });
+
+export const analyzeProfile = async (userId) =>
+  api.post('/api/langchain/api/analyze-profile', {
+    user_id: userId,
   });
 
 // export const fetchProfile = async () => api.get("/user/profile");

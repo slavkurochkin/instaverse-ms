@@ -14,8 +14,8 @@ router.all('/*', async (req, res) => {
       method: req.method,
       url: `${AUTH_SERVICE_URL}${req.originalUrl}`,
       headers: {
-        'Content-Type': req.get('Content-Type') || 'application/json',
-        'Authorization': req.get('Authorization'),
+        ...req.headers,
+        host: undefined,
       },
       timeout: 30000,
       maxContentLength: Infinity,

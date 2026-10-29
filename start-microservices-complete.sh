@@ -56,6 +56,12 @@ check_service "Story Service" 5002
 check_service "Social Service" 5003
 check_service "Notification Service" 5004
 
+if curl -s "http://localhost:16686" > /dev/null 2>&1; then
+    echo "✅ Jaeger UI is running (http://localhost:16686)"
+else
+    echo "⚠️  Jaeger UI is still starting... (http://localhost:16686)"
+fi
+
 # Check frontend
 if curl -s "http://localhost:3000" > /dev/null 2>&1; then
     echo "✅ Frontend is running (http://localhost:3000)"
@@ -74,6 +80,7 @@ echo "🌐 Access Points:"
 echo "   ┌─────────────────────────────────────────────────────"
 echo "   │ 🎨 Frontend:     http://localhost:3000"
 echo "   │ 🚪 API Gateway:  http://localhost:8000"
+echo "   │ 🔭 Jaeger UI:    http://localhost:16686"
 echo "   │ 🐰 RabbitMQ:     http://localhost:15672 (admin/password)"
 echo "   └─────────────────────────────────────────────────────"
 echo ""

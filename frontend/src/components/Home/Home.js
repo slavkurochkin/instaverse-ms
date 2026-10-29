@@ -8,6 +8,7 @@ import ErrorBoundary from '../ErrorBoundary';
 import { Layout } from 'antd';
 import styles from './styles';
 import { getStories, fetchAllTags } from '../../actions/stories';
+import { consumeNavigationTrace } from '../../navigationTracing';
 
 const { Sider, Content } = Layout;
 
@@ -17,8 +18,17 @@ const Home = () => {
 
   useEffect(() => {
     document.title = 'Instaverse';
-    dispatch(getStories());
-    dispatch(fetchAllTags());
+
+    const loadHomeData = async () => {
+      await consumeNavigationTrace(async (navigationSpan) => {
+        navigationSpan?.setAttribute('app.navigation.route', '/');
+        navigationSpan?.addEvent('home.data.fetch.started');
+
+        await Promise.all([dispatch(getStories()), dispatch(fetchAllTags())]);
+      });
+    };
+
+    loadHomeData();
   }, [dispatch]);
 
   /** 

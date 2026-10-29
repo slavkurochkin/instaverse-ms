@@ -1,0 +1,29 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - http://localhost:3000
+          allowed_headers:
+            - Content-Type
+            - traceparent
+            - tracestate
+            - baggage
+            - x-requested-with
+          max_age: 7200
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      exporters:
+        - otlp/jaeger
