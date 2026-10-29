@@ -15,7 +15,8 @@ router.post('/upload', async (req, res) => {
       req.body,
       {
         headers: {
-          'Content-Type': 'application/json',
+          ...req.headers,
+          host: undefined,
         },
         timeout: 30000,
         maxContentLength: Infinity,
@@ -47,6 +48,10 @@ router.delete('/:filename', async (req, res) => {
     const response = await axios.delete(
       `${IMAGE_SERVICE_URL}/api/images/${req.params.filename}`,
       {
+        headers: {
+          ...req.headers,
+          host: undefined,
+        },
         timeout: 10000,
       }
     );

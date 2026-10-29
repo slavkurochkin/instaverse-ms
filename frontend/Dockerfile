@@ -14,6 +14,14 @@ RUN npm install
 COPY . .
 
 # Set CI=false to prevent linting errors from failing the build
+ENV REACT_APP_OTEL_ENABLED=true
+ENV REACT_APP_OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
+ENV REACT_APP_OTEL_PROPAGATION_TARGET=http://localhost:8000
+ENV REACT_APP_OTEL_SERVICE_NAME=instaverse-frontend
+# LaunchDarkly client-side ID — passed in at build time because CRA inlines
+# REACT_APP_* vars during `react-scripts build` (runtime env has no effect).
+ARG REACT_APP_LD_CLIENT_ID
+ENV REACT_APP_LD_CLIENT_ID=$REACT_APP_LD_CLIENT_ID
 ENV CI=false
 
 # Build the React app for production

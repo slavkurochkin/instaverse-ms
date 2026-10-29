@@ -29,6 +29,7 @@ import StoryList from '../StoryList';
 import StoryForm from '../StoryForm'; // Import StoryForm component
 import { useLocation } from 'react-router-dom'; // Import useLocation
 import { analyzeProfile } from '../../api';
+import { consumeNavigationTrace } from '../../navigationTracing';
 
 const { Meta } = Card;
 const { Title, Paragraph, Text } = Typography;
@@ -128,31 +129,40 @@ export default function Profile() {
   useEffect(() => {
     if (id) {
       const fetchUserData = async () => {
-        const profile = await dispatch(getUserProfile(id)); // Fetch user profile
-        const stories = await dispatch(getUserStories(id)); // Fetch stories
-
-        // Store the user profile in local state
-        setUserProfile(profile);
-        setUserStories(stories);
-
-        // Update username and bio from fetched profile
-        if (profile) {
-          if (profile.username) {
-            setUsername(profile.username);
-          }
-          if (profile.bio) {
-            setBio(profile.bio);
-          }
-        }
-
-        // If viewing own profile, update avatar if no uploaded avatar exists
-        if (!userId && profile && !profile.avatar && !user?.result?.avatar) {
-          const placeholder = getAvatarPlaceholder(
-            profile.gender || user?.result?.gender,
-            profile._id || user?.result?._id,
+        await consumeNavigationTrace(async (navigationSpan) => {
+          navigationSpan?.setAttribute('app.navigation.route', '/profile');
+          navigationSpan?.setAttribute(
+            'app.navigation.profile_target',
+            userId || currentUser || 'unknown',
           );
-          setAvatar(placeholder);
-        }
+          navigationSpan?.addEvent('profile.data.fetch.started');
+
+          const profile = await dispatch(getUserProfile(id)); // Fetch user profile
+          const stories = await dispatch(getUserStories(id)); // Fetch stories
+
+          // Store the user profile in local state
+          setUserProfile(profile);
+          setUserStories(stories);
+
+          // Update username and bio from fetched profile
+          if (profile) {
+            if (profile.username) {
+              setUsername(profile.username);
+            }
+            if (profile.bio) {
+              setBio(profile.bio);
+            }
+          }
+
+          // If viewing own profile, update avatar if no uploaded avatar exists
+          if (!userId && profile && !profile.avatar && !user?.result?.avatar) {
+            const placeholder = getAvatarPlaceholder(
+              profile.gender || user?.result?.gender,
+              profile._id || user?.result?._id,
+            );
+            setAvatar(placeholder);
+          }
+        });
       };
 
       fetchUserData();

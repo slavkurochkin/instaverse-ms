@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
+import { trace } from '@opentelemetry/api';
 import authRoutes from './routes/auth.routes.js';
 import storyRoutes from './routes/story.routes.js';
 import socialRoutes from './routes/social.routes.js';
@@ -30,6 +31,34 @@ app.use(express.urlencoded({ limit: '32mb', extended: true }));
 
 // Rate limiting
 app.use(rateLimiter);
+
+app.use((req, res, next) => {
+  const activeSpan = trace.getActiveSpan();
+  const sessionId = req.get('x-session-id');
+  const userId = req.get('x-user-id');
+  const userRole = req.get('x-user-role');
+
+  if (activeSpan) {
+    if (sessionId) {
+      activeSpan.setAttribute('app.session.id', sessionId);
+    }
+
+    activeSpan.setAttribute(
+      'app.auth.state',
+      userId ? 'authenticated' : 'anonymous',
+    );
+
+    if (userId) {
+      activeSpan.setAttribute('enduser.id', userId);
+    }
+
+    if (userRole) {
+      activeSpan.setAttribute('enduser.role', userRole);
+    }
+  }
+
+  next();
+});
 
 // Request logging
 app.use((req, res, next) => {

@@ -16,6 +16,7 @@ import {
 } from '../../constants/actionTypes';
 import { jwtDecode } from 'jwt-decode';
 import NotificationBell from '../Notifications/NottificationBell';
+import { startNavigationTrace } from '../../navigationTracing';
 
 import styles from './styles';
 
@@ -29,25 +30,53 @@ export default function AppBar() {
 
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('profile')));
 
-  const logout = useCallback(() => {
-    dispatch({ type: LOGOUT });
-    navigate('/authform');
-    setUser(null);
-  }, [dispatch, navigate]);
+  const traceNavigation = useCallback(
+    (label, target, eventInfo) => {
+      startNavigationTrace({
+        label,
+        target,
+        source: location.pathname,
+        eventInfo,
+      });
+    },
+    [location.pathname],
+  );
 
-  const navigateToDashboard = useCallback(() => {
-    dispatch({ type: OPEN_DASHBOARD });
-    navigate('/dashboard');
-  }, [dispatch, navigate]);
+  const logout = useCallback(
+    (eventInfo) => {
+      traceNavigation('Logout', '/authform', eventInfo);
+      dispatch({ type: LOGOUT });
+      navigate('/authform');
+      setUser(null);
+    },
+    [dispatch, navigate, traceNavigation],
+  );
 
-  const navigateToProfile = useCallback(() => {
-    dispatch({ type: FETCH_PROFILE });
-    navigate('/profile');
-  }, [dispatch, navigate]);
+  const navigateToDashboard = useCallback(
+    (eventInfo) => {
+      traceNavigation('Dashboard', '/dashboard', eventInfo);
+      dispatch({ type: OPEN_DASHBOARD });
+      navigate('/dashboard');
+    },
+    [dispatch, navigate, traceNavigation],
+  );
 
-  const navigateToHome = useCallback(() => {
-    navigate('/');
-  }, [navigate]);
+  const navigateToProfile = useCallback(
+    (eventInfo) => {
+      traceNavigation('Profile', '/profile', eventInfo);
+      dispatch({ type: FETCH_PROFILE });
+      navigate('/profile');
+    },
+    [dispatch, navigate, traceNavigation],
+  );
+
+  const navigateToHome = useCallback(
+    (eventInfo) => {
+      traceNavigation('Home', '/', eventInfo);
+      navigate('/');
+    },
+    [navigate, traceNavigation],
+  );
 
   useEffect(() => {
     const token = user?.token;

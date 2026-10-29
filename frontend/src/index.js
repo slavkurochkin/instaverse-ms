@@ -4,7 +4,9 @@ import { Provider } from 'react-redux';
 import { applyMiddleware, compose } from 'redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { thunk } from 'redux-thunk';
+import { asyncWithLDProvider } from 'launchdarkly-react-client-sdk';
 import reducers from './reducers';
+import './otel';
 
 import App from './App';
 
@@ -32,8 +34,17 @@ const store = configureStore(
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
 
-root.render(
-  <Provider store={store}>
-    <App />
-  </Provider>,
-);
+(async () => {
+  const LDProvider = await asyncWithLDProvider({
+    clientSideID: process.env.REACT_APP_LD_CLIENT_ID,
+    context: { kind: 'user', key: 'anonymous', anonymous: true },
+  });
+
+  root.render(
+    <LDProvider>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </LDProvider>,
+  );
+})();

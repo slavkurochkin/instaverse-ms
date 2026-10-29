@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSessionPropagationHeaders } from '../tracingSession';
 
 // Use API Gateway for microservices or fallback to localhost:5001 for monolith
 const api = axios.create({
@@ -6,6 +7,11 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((req) => {
+  req.headers = {
+    ...req.headers,
+    ...getSessionPropagationHeaders(),
+  };
+
   if (localStorage.getItem('profile')) {
     const profile = JSON.parse(localStorage.getItem('profile'));
 
