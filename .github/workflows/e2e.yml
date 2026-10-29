@@ -1,0 +1,65 @@
+# E2E tests for every pull request: boots this PR's stack and runs the suite from the
+# (private) e2e-testing-lab repo against it. See e2e-testing-lab, labs/09_github_actions.
+#
+# Needs one repository secret, E2E_LABS_TOKEN: a fine-grained GitHub token with read-only
+# "Contents" access to slavkurochkin/e2e-testing-lab. Without it the job doesn't run the
+# tests and says so in a failed check (a gate that passes without testing is no gate).
+name: e2e
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      E2E_DIR: ${{ github.workspace }}/e2e-testing-lab/instaverse
+      HAS_TOKEN: ${{ secrets.E2E_LABS_TOKEN != '' }}
+    steps:
+      - name: Check that the E2E token is set
+        if: env.HAS_TOKEN != 'true'
+        run: |
+          echo "::error title=E2E not run::Add the E2E_LABS_TOKEN repository secret (read access to slavkurochkin/e2e-testing-lab) to run the E2E suite."
+          exit 1
+
+      - name: Check out this pull request
+        uses: actions/checkout@v4
+
+      - name: Check out the E2E suite
+        uses: actions/checkout@v4
+        with:
+          repository: slavkurochkin/e2e-testing-lab
+          token: ${{ secrets.E2E_LABS_TOKEN }}
+          path: e2e-testing-lab
+
+      - name: Prepare for CI
+        run: printf 'OPENAI_API_KEY=not-used-in-ci\nLANGSMITH_TRACING=false\n' > services/langchain-service/.env
+
+      - name: Build and boot the stack
+        run: docker compose -f docker-compose.microservices.yml -f "$E2E_DIR/docker-compose.e2e.yml" up -d --build --wait --wait-timeout 300
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e-testing-lab/labs/09_github_actions/package-lock.json
+
+      - name: Install the suite and its browser
+        working-directory: e2e-testing-lab/labs/09_github_actions
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Run the E2E suite
+        working-directory: e2e-testing-lab/labs/09_github_actions
+        run: npx playwright test --config=playwright.ci.config.ts
+
+      - name: Upload the HTML report and traces
+        if: ${{ !cancelled() && env.HAS_TOKEN == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e-testing-lab/labs/09_github_actions/results/html
+            e2e-testing-lab/labs/09_github_actions/results/test-output
+          retention-days: 14
