@@ -12,7 +12,7 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # pinned: the measured runs used it, and ubuntu-latest moves to 26
     timeout-minutes: 40
     env:
       E2E_DIR: ${{ github.workspace }}/e2e-testing-lab/instaverse
