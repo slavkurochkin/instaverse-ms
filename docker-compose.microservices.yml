@@ -230,6 +230,12 @@ services:
       - IMAGE_SERVICE_URL=http://localhost:5005
     volumes:
       - image-uploads:/app/uploads
+    # So `docker compose up --wait` waits until it answers (it had no healthcheck).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5005/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
     restart: unless-stopped
     networks:
       - microservices-network
@@ -301,6 +307,13 @@ services:
     depends_on:
       - api-gateway
       - otel-collector
+    # Without this, `up --wait` returns as soon as the container starts, before nginx
+    # answers, and the first E2E test can hit a frontend that isn't serving yet.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
     restart: unless-stopped
     networks:
       - microservices-network
